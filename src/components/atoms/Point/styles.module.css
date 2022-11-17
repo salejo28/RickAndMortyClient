@@ -1,0 +1,21 @@
+.point {
+  width: 10px;
+  height: 10px;
+  border-radius: 100%;
+  -webkit-border-radius: 100%;
+  -moz-border-radius: 100%;
+  -ms-border-radius: 100%;
+  -o-border-radius: 100%;
+}
+
+.Alive {
+  background: green;
+}
+
+.Dead {
+  background: red;
+}
+
+.unknown {
+  background: #777;
+}

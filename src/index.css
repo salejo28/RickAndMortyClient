@@ -1,0 +1,25 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.container {
+  padding: 30px 40px;
+}
+
+.content-cards,
+.grid-responsive {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+
+.content-images-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.swal2-container {
+  z-index: 100000000;
+}
