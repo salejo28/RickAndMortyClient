@@ -1,9 +1,28 @@
 import { api } from 'app/services/api/Api'
-import { ILocation } from 'app/types'
+import { ICharacter, ILocation } from 'app/types'
 import Card from 'app/components/molecules/Card/Card'
 import { Fragment, useCallback, useEffect, useState } from 'react'
-import { TextField, Typography } from '@mui/material'
+import { Autocomplete, Box, Button, TextField, Typography } from '@mui/material'
 import { Pagination } from 'app/components/molecules/Pagination/Pagination'
+import { Modal } from 'app/components/molecules/Modal/Modal'
+import resource from 'app/resources/resources.json'
+
+interface IValues {
+  name: string
+  type: string
+  dimension: string
+  residents: ICharacter[]
+}
+
+const INITIAL_VALUES: IValues = {
+  name: '',
+  type: '',
+  dimension: '',
+  residents: [],
+}
+
+const TYPES = resource.locations.type
+const DIMENSIONS = resource.locations.dimensions
 
 export const Locations = () => {
   const [locations, setLocations] = useState<ILocation[]>([])
@@ -11,10 +30,23 @@ export const Locations = () => {
   const [lastPage, setLastPage] = useState<number>(1)
   const [search, setSearch] = useState<string>('')
   const [totalLocations, setTotalLocations] = useState<number>(0)
+  const [openModal, setOpenModal] = useState<boolean>(false)
+  const [values, setValues] = useState<IValues>(INITIAL_VALUES)
+  const [characterValue, setCharacterValue] = useState<string>('')
+  const [characters, setCharacters] = useState<ICharacter[]>([])
+  const [edit, setEdit] = useState<boolean>(false)
+  const [locationId, setLocationId] = useState<number>(0)
 
   const handleSearch = (value: string) => {
     setPage(1)
     setSearch(value)
+  }
+
+  const handleChange = (name: string, value: string | ICharacter[]) => {
+    setValues((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
   }
 
   const getResidentImages = (location: ILocation): JSX.Element => {
@@ -44,6 +76,16 @@ export const Locations = () => {
     )
   }
 
+  const handleClose = () => {
+    setOpenModal(false)
+    setValues(INITIAL_VALUES)
+  }
+
+  const getCharacters = useCallback(async () => {
+    const response = await api.getCharacters(1, characterValue)
+    setCharacters(response.data)
+  }, [characterValue])
+
   const getLocations = useCallback(async () => {
     const response = await api.getLocations(page, search)
     setTotalLocations(response.total)
@@ -56,11 +98,114 @@ export const Locations = () => {
     getLocations()
   }, [getLocations])
 
+  useEffect(() => {
+    getCharacters()
+  }, [getCharacters])
+
+  const form = [
+    {
+      label: 'Name',
+      name: 'name',
+      type: 'text',
+    },
+    {
+      label: 'Type',
+      name: 'type',
+      type: 'autocomplete',
+      options: TYPES,
+    },
+    {
+      label: 'Dimension',
+      name: 'dimension',
+      type: 'autocomplete',
+      options: DIMENSIONS,
+    },
+    {
+      label: 'Residents',
+      name: 'residents',
+      type: 'multiple-autocomplete',
+      options: characters,
+    },
+  ]
+
   return (
     <Fragment>
-      <Typography variant="h4" color={'#777'} mb={1}>
-        Locations <small>({totalLocations})</small>
-      </Typography>
+      <Modal open={openModal} close={handleClose}>
+        <form>
+          <div className="grid-responsive">
+            {form.map((field) => {
+              const { label, name, type, options } = field
+              const value = values[name as keyof IValues]
+
+              if (type === 'autocomplete') {
+                return (
+                  <Autocomplete
+                    key={name}
+                    options={(options as string[]) ?? []}
+                    onChange={(_, v) => handleChange(name, v ?? '')}
+                    getOptionLabel={(option) => option}
+                    value={value as string}
+                    filterSelectedOptions
+                    renderInput={(params) => (
+                      <TextField {...params} label={label} name={name} />
+                    )}
+                  />
+                )
+              }
+
+              if (type === 'multiple-autocomplete') {
+                return (
+                  <Autocomplete
+                    key={name}
+                    multiple
+                    options={(options as ICharacter[]) ?? []}
+                    onChange={(_, v) => handleChange(name, v)}
+                    getOptionLabel={(option) => option.name}
+                    value={value as ICharacter[]}
+                    filterSelectedOptions
+                    inputValue={characterValue}
+                    onInputChange={(_, v) => setCharacterValue(v)}
+                    renderInput={(params) => (
+                      <TextField {...params} label={label} name={name} />
+                    )}
+                  />
+                )
+              }
+
+              return (
+                <TextField
+                  key={name}
+                  label={label}
+                  name={name}
+                  value={value}
+                  onChange={({ target }) => handleChange(name, target.value)}
+                />
+              )
+            })}
+          </div>
+
+          <Button
+            variant={'contained'}
+            sx={{ mt: 2, width: '100%' }}
+            type={'submit'}
+          >
+            Save
+          </Button>
+        </form>
+      </Modal>
+      <Box
+        mb={1}
+        display={'flex'}
+        justifyContent={'space-between'}
+        alignItems={'center'}
+      >
+        <Typography variant="h4" color={'#777'} mb={1}>
+          Locations <small>({totalLocations})</small>
+        </Typography>
+        <Button variant="contained" onClick={() => setOpenModal(true)}>
+          New
+        </Button>
+      </Box>
       <TextField
         type={'search'}
         label="Location Name"

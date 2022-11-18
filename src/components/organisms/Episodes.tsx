@@ -231,6 +231,7 @@ export const Episodes = () => {
       label: 'Characters',
       name: 'characters',
       type: 'multiple-autocomplete',
+      options: characters,
     },
   ]
 
@@ -241,7 +242,7 @@ export const Episodes = () => {
           <form onSubmit={onSubmit}>
             <div className="grid-responsive">
               {form.map((field) => {
-                const { label, name, type } = field
+                const { label, name, type, options } = field
                 const value = values[name as keyof IValues]
                 if (type === 'date') {
                   return (
@@ -264,7 +265,7 @@ export const Episodes = () => {
                     <Autocomplete
                       key={name}
                       multiple
-                      options={characters}
+                      options={options ?? []}
                       onChange={(_, v) => handleChange(name, v)}
                       getOptionLabel={(option) => option.name}
                       value={value as ICharacter[]}
