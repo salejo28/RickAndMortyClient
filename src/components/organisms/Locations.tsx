@@ -1,11 +1,23 @@
 import { api } from 'app/services/api/Api'
 import { ICharacter, ILocation } from 'app/types'
 import Card from 'app/components/molecules/Card/Card'
-import { Fragment, useCallback, useEffect, useState } from 'react'
-import { Autocomplete, Box, Button, TextField, Typography } from '@mui/material'
+import React, { Fragment, useCallback, useEffect, useState } from 'react'
+import {
+  Autocomplete,
+  Box,
+  Button,
+  CardActions,
+  IconButton,
+  TextField,
+  Typography,
+} from '@mui/material'
 import { Pagination } from 'app/components/molecules/Pagination/Pagination'
 import { Modal } from 'app/components/molecules/Modal/Modal'
 import resource from 'app/resources/resources.json'
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+import { handleError } from 'app/common/errors'
+import { Delete, Edit } from '@mui/icons-material'
 
 interface IValues {
   name: string
@@ -20,6 +32,7 @@ const INITIAL_VALUES: IValues = {
   dimension: '',
   residents: [],
 }
+const MySwal = withReactContent(Swal)
 
 const TYPES = resource.locations.type
 const DIMENSIONS = resource.locations.dimensions
@@ -76,9 +89,98 @@ export const Locations = () => {
     )
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const data = {
+      ...values,
+      residents: values.residents.map((resident) => resident.url),
+    }
+
+    try {
+      if (edit) {
+        const response = await api.editLocation(locationId, data)
+        if (!response.success) {
+          handleError(response.errors)
+          return
+        }
+
+        getLocations()
+        handleClose()
+
+        MySwal.fire({
+          position: 'top-end',
+          icon: 'success',
+          title: 'Location Edited',
+          showConfirmButton: false,
+          timer: 1500,
+        })
+        return
+      }
+      const response = await api.createLocation(data)
+      if (!response.success) {
+        handleError(response.errors)
+        return
+      }
+
+      getLocations()
+      handleClose()
+
+      MySwal.fire({
+        position: 'top-end',
+        icon: 'success',
+        title: 'Location Created',
+        showConfirmButton: false,
+        timer: 1500,
+      })
+    } catch (error) {
+      MySwal.fire({
+        icon: 'error',
+        title: 'Ops..., something is wrong',
+      })
+    }
+  }
+
   const handleClose = () => {
     setOpenModal(false)
     setValues(INITIAL_VALUES)
+  }
+
+  const handleDelete = async (id: number) => {
+    try {
+      const response = await api.deleteLocation(id)
+      await getLocations()
+      MySwal.fire({
+        position: 'top-end',
+        icon: 'success',
+        title: response.message,
+        showConfirmButton: false,
+        timer: 1500,
+      })
+    } catch (error) {
+      MySwal.fire({
+        icon: 'error',
+        title: 'Ops..., something is wrong',
+      })
+    }
+  }
+
+  const handleEdit = async (location: ILocation) => {
+    setEdit(true)
+    setLocationId(location.id)
+    const residents = await Promise.all(
+      location.residents.map(async (resident) => {
+        const response = await fetch(resident)
+        return await response.json()
+      })
+    )
+
+    setValues({
+      name: location.name,
+      dimension: location.dimension,
+      residents,
+      type: location.type,
+    })
+    setOpenModal(true)
   }
 
   const getCharacters = useCallback(async () => {
@@ -131,7 +233,7 @@ export const Locations = () => {
   return (
     <Fragment>
       <Modal open={openModal} close={handleClose}>
-        <form>
+        <form onSubmit={handleSubmit}>
           <div className="grid-responsive">
             {form.map((field) => {
               const { label, name, type, options } = field
@@ -250,6 +352,20 @@ export const Locations = () => {
                 {location.dimension}
               </Typography>
             </Card.Content>
+            <CardActions disableSpacing>
+              <IconButton
+                onClick={() => handleDelete(location.id)}
+                color={'error'}
+              >
+                <Delete />
+              </IconButton>
+              <IconButton
+                color={'primary'}
+                onClick={() => handleEdit(location)}
+              >
+                <Edit />
+              </IconButton>
+            </CardActions>
           </Card>
         ))}
       </div>

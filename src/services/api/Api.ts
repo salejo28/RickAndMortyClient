@@ -48,6 +48,18 @@ class Api {
   async deleteEpisode(id: number) {
     return await this.base.delete(`/episodes/${id}`)
   }
+
+  async createLocation(data: unknown) {
+    return await this.base.post('/locations', data)
+  }
+
+  async editLocation(id: number, data: unknown) {
+    return await this.base.put(`/locations/${id}`, data)
+  }
+
+  async deleteLocation(id: number) {
+    return await this.base.delete(`/locations/${id}`)
+  }
 }
 
 const api = new Api()
